@@ -6,6 +6,8 @@ from flask import Flask, request, jsonify, url_for
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from datastructures import FamilyStructure
+import json
+from types import SimpleNamespace
 # from models import Person
 
 
@@ -29,13 +31,41 @@ def sitemap():
     return generate_sitemap(app)
 
 
-@app.route('/members', methods=['GET'])
-def handle_hello():
+@app.route('/members', methods=['GET','POST'])
+def members_handle():
     # This is how you can use the Family datastructure by calling its methods
-    members = jackson_family.get_all_members()
-    response_body = {"hello": "world",
-                     "family": members}
-    return jsonify(response_body), 200
+    if request.method == "GET":
+        members = jackson_family.get_all_members()
+        response_body = members
+        return jsonify(response_body), 200
+    else:
+        member = json.loads(request.data)
+        jackson_family.add_member(member)
+        response_body = member
+    
+        return jsonify(response_body), 200
+
+@app.route('/members/<int:id>', methods=['GET','DELETE'])
+def member_handle(id):
+    # This is how you can use the Family datastructure by calling its methods
+    index = jackson_family.search(id)
+    if index == -1:
+        response_body = {
+            "response": "Member does not exist"
+        },404
+        return jsonify(response_body)
+    
+    if request.method == "GET":
+        member = jackson_family.get_member(index)
+        response_body = member
+    else:
+        jackson_family.delete_member(index)
+        response_body = {
+            "done": True
+        },200
+        
+    return jsonify(response_body)
+    
 
 
 
