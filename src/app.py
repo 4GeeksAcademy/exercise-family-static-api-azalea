@@ -6,8 +6,6 @@ from flask import Flask, request, jsonify, url_for
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from datastructures import FamilyStructure
-import json
-from types import SimpleNamespace
 # from models import Person
 
 
@@ -30,44 +28,34 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-
-@app.route('/members', methods=['GET','POST'])
-def members_handle():
+@app.route('/members', methods=['GET'])
+def handle_hello():
     # This is how you can use the Family datastructure by calling its methods
-    if request.method == "GET":
-        members = jackson_family.get_all_members()
-        response_body = members
-        return jsonify(response_body), 200
-    else:
-        member = json.loads(request.data)
-        jackson_family.add_member(member)
-        response_body = member
-    
-        return jsonify(response_body), 200
+    members = jackson_family.get_all_members()
+    return jsonify(members), 200
 
-@app.route('/members/<int:id>', methods=['GET','DELETE'])
-def member_handle(id):
-    # This is how you can use the Family datastructure by calling its methods
-    index = jackson_family.search(id)
-    if index == -1:
-        response_body = {
-            "response": "Member does not exist"
-        },404
-        return jsonify(response_body)
-    
-    if request.method == "GET":
-        member = jackson_family.get_member(index)
-        response_body = member
-    else:
-        jackson_family.delete_member(index)
-        response_body = {
-            "done": True
-        },200
-        
-    return jsonify(response_body)
-    
+@app.route('/members', methods=['POST'])
+def handle_new_member():
+    body  = request.get_json()
+    new_member = jackson_family.add_member(body)
+    return jsonify(new_member), 200
 
+@app.route('/members/<int:member_id>', methods=['GET'])
+def handle_single_member(member_id):
+    member = jackson_family.get_member(member_id)
+    if member is None:
+        return jsonify({"msg": "Miembro no encontrado"}), 404
 
+    return jsonify(member), 200
+
+@app.route('/members/<int:member_id>', methods=['DELETE'])
+def delete_member(member_id):
+    member = jackson_family.get_member(member_id)
+    if member is None:
+        return jsonify({"msg": "Miembro no encontrado"}), 404
+
+    jackson_family.delete_member(member_id)
+    return jsonify({"done": True}), 200
 
 # This only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
